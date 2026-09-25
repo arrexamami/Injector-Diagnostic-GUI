@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import csv
 import random
+from datetime import datetime
 from typing import List
 
 from app.core.models import (
     ConnectionMode,
     CommunicationSettings,
+    DtcHistoryEntry,
     DtcRecord,
     DtcStatus,
     InjectorTestResult,
@@ -13,6 +16,9 @@ from app.core.models import (
     LiveDataPoint,
     Vehicle,
     EcuSettings,
+    LoggedSample,
+    WorkSession,
+    Alert,
 )
 
 
@@ -21,6 +27,7 @@ class Simulator:
         self.vehicle = Vehicle()
         self.ecu = EcuSettings()
         self.communication = CommunicationSettings(mode=ConnectionMode.SIMULATION)
+        self.theme = "Dark"
         self._dtcs: List[DtcRecord] = [
             DtcRecord(
                 code="P0100",
@@ -37,6 +44,7 @@ class Simulator:
                     "Check MAF power/ground",
                     "Compare MAF signal with live data",
                 ],
+                favorite=True,
             ),
             DtcRecord(
                 code="P0115",
@@ -55,6 +63,11 @@ class Simulator:
                 ],
             ),
         ]
+        self.history: List[DtcHistoryEntry] = []
+        self.samples: List[LoggedSample] = []
+        self.alerts: List[Alert] = []
+        self.sessions: List[WorkSession] = []
+        self.favorites: List[str] = ["P0100"]
 
     def get_live_data(self) -> List[LiveDataPoint]:
         return [
@@ -72,6 +85,73 @@ class Simulator:
 
     def clear_dtc_codes(self) -> None:
         self._dtcs.clear()
+        self.history.clear()
+        self.alerts.append(Alert("DTC Cleared", "Simulation DTC memory cleared.", "Info"))
+
+    def add_history_entry(self, dtc: DtcRecord) -> None:
+        self.history.append(
+            DtcHistoryEntry(
+                code=dtc.code,
+                system=dtc.system,
+                description=dtc.description,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            )
+        )
+
+    def add_to_favorites(self, dtc_code: str) -> None:
+        if dtc_code not in self.favorites:
+            self.favorites.append(dtc_code)
+        for dtc in self._dtcs:
+            if dtc.code == dtc_code:
+                dtc.favorite = True
+
+    def remove_from_favorites(self, dtc_code: str) -> None:
+        if dtc_code in self.favorites:
+            self.favorites.remove(dtc_code)
+        for dtc in self._dtcs:
+            if dtc.code == dtc_code:
+                dtc.favorite = False
+
+    def get_history(self) -> List[DtcHistoryEntry]:
+        return self.history
+
+    def add_alert(self, title: str, message: str, level: str = "Info") -> None:
+        self.alerts.append(Alert(title, message, level))
+
+    def get_alerts(self) -> List[Alert]:
+        return self.alerts
+
+    def log_sample(self, point: LiveDataPoint) -> None:
+        self.samples.append(
+            LoggedSample(
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                name=point.name,
+                value=point.value,
+                unit=point.unit,
+            )
+        )
+
+    def export_csv(self, path: str) -> str:
+        with open(path, "w", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
+            writer.writerow(["timestamp", "name", "value", "unit"])
+            for sample in self.samples:
+                writer.writerow([sample.timestamp, sample.name, sample.value, sample.unit])
+        return path
+
+    def create_session(self, name: str) -> WorkSession:
+        session = WorkSession(
+            session_id=f"session-{len(self.sessions) + 1}",
+            name=name,
+            vehicle=f"{self.vehicle.manufacturer} {self.vehicle.model}",
+            created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            notes="Simulation session",
+        )
+        self.sessions.append(session)
+        return session
+
+    def get_sessions(self) -> List[WorkSession]:
+        return self.sessions
 
     def run_injector_test(self, test_type: InjectorTestType) -> InjectorTestResult:
         if test_type == InjectorTestType.RESISTANCE:
@@ -125,4 +205,18 @@ class Simulator:
                 point.value = random.uniform(0.68, 0.85)
             elif point.name == "Battery Voltage":
                 point.value = random.uniform(13.4, 14.4)
+        for point in live_data:
+            self.log_sample(point)
+        if len(self.samples) > 200:
+            self.samples = self.samples[-200:]
         return live_data
+
+    def run_batch_tests(self) -> List[InjectorTestResult]:
+        return [self.run_injector_test(test_type) for test_type in InjectorTestType]
+
+    def set_theme(self, theme: str) -> None:
+        self.theme = theme
+
+    def toggle_theme(self) -> str:
+        self.theme = "Light" if self.theme == "Dark" else "Dark"
+        return self.theme

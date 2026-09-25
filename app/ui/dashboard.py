@@ -39,8 +39,9 @@ class StatusCard(QFrame):
 
 
 class DashboardWidget(QWidget):
-    def __init__(self) -> None:
+    def __init__(self, simulator=None) -> None:
         super().__init__()
+        self.simulator = simulator
         self.setObjectName("dashboard")
         layout = QGridLayout(self)
         layout.setSpacing(14)
@@ -63,3 +64,12 @@ class DashboardWidget(QWidget):
             if col == 3:
                 col = 0
                 row += 1
+
+        if self.simulator:
+            self.alert_label = QLabel("Alerts: " + str(len(self.simulator.get_alerts())))
+            self.alert_label.setStyleSheet("color: #FBBF24; font-weight: 600;")
+            layout.addWidget(self.alert_label, row, 0, 1, 3)
+            row += 1
+            self.session_label = QLabel("Sessions: " + str(len(self.simulator.get_sessions())))
+            self.session_label.setStyleSheet("color: #60A5FA; font-weight: 600;")
+            layout.addWidget(self.session_label, row, 0, 1, 3)

@@ -68,6 +68,7 @@ class DtcRecord:
     status: DtcStatus = DtcStatus.STORED
     possible_causes: List[str] = field(default_factory=list)
     recommended_checks: List[str] = field(default_factory=list)
+    favorite: bool = False
 
 
 @dataclass
@@ -86,3 +87,35 @@ class DiagnosisStep:
     result: str
     next_action: str
     status: str = "Pending"
+
+
+@dataclass
+class LoggedSample:
+    timestamp: str
+    name: str
+    value: float
+    unit: str
+
+
+@dataclass
+class DtcHistoryEntry:
+    code: str
+    system: str
+    description: str
+    timestamp: str
+
+
+@dataclass
+class WorkSession:
+    session_id: str
+    name: str
+    vehicle: str
+    created_at: str
+    notes: str = ""
+
+
+@dataclass
+class Alert:
+    title: str
+    message: str
+    level: str = "Info"

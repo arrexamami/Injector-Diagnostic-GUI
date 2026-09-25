@@ -13,9 +13,10 @@ from app.core.models import InjectorTestType
 
 
 class InjectorTestWidget(QWidget):
-    def __init__(self, injector_service) -> None:
+    def __init__(self, injector_service, simulator=None) -> None:
         super().__init__()
         self.injector_service = injector_service
+        self.simulator = simulator
 
         self.root = QVBoxLayout(self)
         self.form = QFormLayout()
@@ -33,8 +34,13 @@ class InjectorTestWidget(QWidget):
         self.run_button.setStyleSheet("QPushButton { background: #2563EB; color: white; padding: 10px; border-radius: 8px; font-weight: 600; }")
         self.run_button.clicked.connect(self.run_test)
 
+        self.batch_button = QPushButton("Run Batch Tests")
+        self.batch_button.setStyleSheet("QPushButton { background: #0EA5E9; color: white; padding: 10px; border-radius: 8px; font-weight: 600; }")
+        self.batch_button.clicked.connect(self.run_batch)
+
         self.root.addLayout(self.form)
         self.root.addWidget(self.run_button)
+        self.root.addWidget(self.batch_button)
         self.root.addStretch()
 
     def run_test(self) -> None:
@@ -48,3 +54,12 @@ class InjectorTestWidget(QWidget):
             f"Message: {result.message}<br>"
             f"<font color='#FBBF24'>[SIMULATION]</font>"
         )
+        if self.simulator:
+            self.simulator.add_alert("Injector Test", f"{result.test_type.value} completed.", "Info")
+
+    def run_batch(self) -> None:
+        if self.simulator:
+            tests = self.simulator.run_batch_tests()
+            summary = "<br>".join(f"{item.test_type.value}: {'PASS' if item.passed else 'FAIL'}" for item in tests)
+            self.result_label.setText(summary)
+            self.simulator.add_alert("Batch Test", "All injector tests completed in simulation mode.", "Info")

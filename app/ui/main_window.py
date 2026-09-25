@@ -87,11 +87,11 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
 
         tabs = QTabWidget()
-        tabs.addTab(DashboardWidget(), "Dashboard")
+        tabs.addTab(DashboardWidget(simulator), "Dashboard")
         tabs.addTab(LiveDataWidget(simulator), "Live Data")
-        tabs.addTab(EcuScanWidget(ecu_service), "ECU Scan")
-        tabs.addTab(InjectorTestWidget(injector_service), "Injector Test")
-        tabs.addTab(DiagnosisWidget(diagnosis_service, ecu_service), "Diagnosis")
+        tabs.addTab(EcuScanWidget(ecu_service, simulator), "ECU Scan")
+        tabs.addTab(InjectorTestWidget(injector_service, simulator), "Injector Test")
+        tabs.addTab(DiagnosisWidget(diagnosis_service, ecu_service, simulator), "Diagnosis")
         tabs.addTab(SettingsWidget(simulator), "Settings")
 
         layout.addWidget(tabs)
